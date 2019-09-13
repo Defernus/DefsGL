@@ -108,9 +108,9 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 	size_t triangles_amount = quantity/3;
 	for (uint32_t i = 0; i != triangles_amount; ++i)
 	{
-		Vec3f v0 = shader->vertex(data + bytes_per_vertex * indices[i * 3	]);
-		Vec3f v1 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 1]);
-		Vec3f v2 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 2]);
+		Vec4f v0 = shader->vertex(data + bytes_per_vertex * indices[i * 3	]);
+		Vec4f v1 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 1]);
+		Vec4f v2 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 2]);
 
 		bool swapped01;
 		bool swapped02;
@@ -158,7 +158,7 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 
 			for (int x = xl; x != xr; ++x)
 			{
-				if (y < 0 || x < 0 || y >= width || x >= height)continue;
+				if (y < 0 || x < 0 || y >= int(width) || x >= int(height))continue;
 
 				float u, v;
 
@@ -187,18 +187,18 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 					std::swap(unswapped_y0, unswapped_y1);
 				}
 
-				Vec3f p = Vec3f(x - unswapped_x0, y - unswapped_y0, 0);
-				Vec3f a = Vec3f(unswapped_x1 - unswapped_x0, unswapped_y1 - unswapped_y0, 0);
-				Vec3f b = Vec3f(unswapped_x2 - unswapped_x0, unswapped_y2 - unswapped_y0, 0);
+				Vec2f p = Vec2f(x - unswapped_x0, y - unswapped_y0);
+				Vec2f a = Vec2f(unswapped_x1 - unswapped_x0, unswapped_y1 - unswapped_y0);
+				Vec2f b = Vec2f(unswapped_x2 - unswapped_x0, unswapped_y2 - unswapped_y0);
 
-				Vec3f pb = b - p;
+				Vec2f pb = b - p;
 
 				float f = 1.0f / (a[0] * b[1] - a[1] * b[0]);
 				u = (pb[1] * p[0] - pb[0] * p[1])*f;
 				v = 1.0f - (u + ((a[0] - p[0])* pb[1] - (a[1] - p[1]) * pb[0])*f);
 				//std::cout << u << " " << v << std::endl;
 
-				float depth = mix(mix(v0[2], v1[2], u), v2[2], v);
+				float depth = mix2d(v0[2], v1[2], v2[2], u, v);
 
 				if (depthTestFunction(getDepthAt(x, y), depth))continue;
 
