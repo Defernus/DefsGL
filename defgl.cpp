@@ -117,24 +117,24 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 		bool swapped02;
 		bool swapped12;
 
-		int x0 = v0.x*width;
-		int y0 = v0.y*height;
-		int x1 = v1.x*width;
-		int y1 = v1.y*height;
-		int x2 = v2.x*width;
-		int y2 = v2.y*height;
+		int x0 = (v0.x + 1) * (width  / 2);
+		int y0 = (v0.y + 1) * (height / 2);
+		int x1 = (v1.x + 1) * (width  / 2);
+		int y1 = (v1.y + 1) * (height / 2);
+		int x2 = (v2.x + 1) * (width  / 2);
+		int y2 = (v2.y + 1) * (height / 2);
 
-		if (swapped01 = v0.y > v1.y)
+		if (swapped01 = y0 > y1)
 		{
 			std::swap(x0, x1);
 			std::swap(y0, y1);
 		}
-		if (swapped02 = v0.y > v2.y)
+		if (swapped02 = y0 > y2)
 		{
 			std::swap(x0, x2);
 			std::swap(y0, y2);
 		}
-		if (swapped12 = v1.y > v2.y)
+		if (swapped12 = y1 > y2)
 		{
 			std::swap(x1, x2);
 			std::swap(y1, y2);

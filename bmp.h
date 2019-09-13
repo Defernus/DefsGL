@@ -84,7 +84,7 @@ void writeToFile(const T &var, std::ofstream &file)
 }
 
 /*incomplite*/
-BMP load(const char *path)
+BMP loadBMP(const char *path)
 {
 	BMP bmp;
 
@@ -117,7 +117,7 @@ BMP load(const char *path)
 	return bmp;
 }
 
-void write(const BMP &bmp, const char *path)
+void writeBMP(const BMP &bmp, const char *path)
 {
 	std::ofstream file;
 	file.open(path, std::ofstream::binary);

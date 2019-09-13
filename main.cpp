@@ -1,6 +1,7 @@
 #include "vec.h"
 #include "defgl.h"
 #include "bmp.h"
+#include "model.h"
 
 class MainShader: public Shader
 {
@@ -17,12 +18,16 @@ public:
 		v.y = readFromBytes<float>(data + (sizeof(float) * (j++)));
 		v.z = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
+		Vecf uv;
+		uv.x = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		uv.y = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
-		color[i].x = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		color[i].y = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		color[i].z = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		Vecf normal;
+		normal.x = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal.y = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal.z = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
-		std::cout << int(i) << "\t\t" << v << "\t\t" << color[i] << std::endl;
+		color[i] = normal;
 
 		if (++i == 3) {
 			i = 0;
@@ -38,10 +43,6 @@ public:
 
 		Vecf c = mix2d(color[0], color[1], color[2], u, v);
 
-		//std::cout << u << "\t\t" << v << std::endl;
-		//std::cout << c << std::endl;
-		//std::cout << color[0] << "\t\t" << color[1] << "\t\t" << color[2] << std::endl << std::endl;
-
 		return { c.x, c.y, c.z, 1 };
 	}
 };
@@ -54,19 +55,7 @@ int main()
 
 	image.bit_map = new unsigned char[image_size*3];
 
-	float triangles[] =
-	{
-		.1, .1, .1,		1, 0, 0,
-		.9, .1, .1,		0, 1, 0,
-		.1, .9, .1,		0, 0, 1,
-		.9, .9, .1,		1, 1, 1,
-	};
-
-	uint32_t indices[] =
-	{
-		0, 1, 2,
-		1, 3, 2,
-	};
+	Model model = loadModel("model.obj");
 
 	MainShader *shader = new MainShader();
 
@@ -76,12 +65,12 @@ int main()
 
 	setDepthTest(true);
 
-	clearColor({1, 0, 1, 1});
+	clearColor({.5, .5, .5, 1});
 	clearDepthBuffer(-INFINITY);
 
-	drawElements((unsigned char*)triangles, indices, 6, 6*sizeof(float));
+	drawElements((unsigned char*)(&model.data[0]), (uint32_t*)(&model.indices[0]), model.indices.size(), 8*sizeof(float));
 
-	write(image, "test.bmp");
+	writeBMP(image, "test.bmp");
 
 	std::cout << "success!" << std::endl;
 
