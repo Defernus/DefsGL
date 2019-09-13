@@ -1,6 +1,5 @@
 #include "defgl.h"
 
-
 inline unsigned char getByteColor(const double &a)
 {
 	return unsigned char((a < 0 ? 0 : (a > 1 ? 1 : a)) * 255 + .5);
@@ -31,7 +30,7 @@ size_t width;
 size_t height;
 float *depthBuffer;
 
-bool DEPTH_TEST = false;
+bool(*depthTestFunction)(const float &input, const float&current) = ([](const float &input, const float&current) {return true; });
 
 int initDGL()
 {
@@ -93,9 +92,9 @@ inline void putPixel(const int &x, const int &y, const Color &color)
 	bitmap[pos  ] = getByteColor(color.b);
 }
 
-int setDepthTest(const bool &v)
+int setDepthTestFunction(bool(*f)(const float &input, const float&current))
 {
-	DEPTH_TEST = v;
+	depthTestFunction = f;
 	return 0;
 }
 
@@ -109,20 +108,20 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 	size_t triangles_amount = quantity/3;
 	for (uint32_t i = 0; i != triangles_amount; ++i)
 	{
-		Vecf v0 = shader->vertex(data + bytes_per_vertex * indices[i * 3	]);
-		Vecf v1 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 1]);
-		Vecf v2 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 2]);
+		Vec3f v0 = shader->vertex(data + bytes_per_vertex * indices[i * 3	]);
+		Vec3f v1 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 1]);
+		Vec3f v2 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 2]);
 
 		bool swapped01;
 		bool swapped02;
 		bool swapped12;
 
-		int x0 = (v0.x + 1) * (width  / 2);
-		int y0 = (v0.y + 1) * (height / 2);
-		int x1 = (v1.x + 1) * (width  / 2);
-		int y1 = (v1.y + 1) * (height / 2);
-		int x2 = (v2.x + 1) * (width  / 2);
-		int y2 = (v2.y + 1) * (height / 2);
+		int x0 = (v0[0] + 1) * (width / 2);
+		int y0 = (v0[1] + 1) * (height / 2);
+		int x1 = (v1[0] + 1) * (width / 2);
+		int y1 = (v1[1] + 1) * (height / 2);
+		int x2 = (v2[0] + 1) * (width / 2);
+		int y2 = (v2[1] + 1) * (height / 2);
 
 		if (swapped01 = y0 > y1)
 		{
@@ -188,20 +187,20 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 					std::swap(unswapped_y0, unswapped_y1);
 				}
 
-				Vecf p = Vecf(x - unswapped_x0, y - unswapped_y0, 0);
-				Vecf a = Vecf(unswapped_x1 - unswapped_x0, unswapped_y1 - unswapped_y0, 0);
-				Vecf b = Vecf(unswapped_x2 - unswapped_x0, unswapped_y2 - unswapped_y0, 0);
+				Vec3f p = Vec3f(x - unswapped_x0, y - unswapped_y0, 0);
+				Vec3f a = Vec3f(unswapped_x1 - unswapped_x0, unswapped_y1 - unswapped_y0, 0);
+				Vec3f b = Vec3f(unswapped_x2 - unswapped_x0, unswapped_y2 - unswapped_y0, 0);
 
-				Vecf pb = b - p;
+				Vec3f pb = b - p;
 
-				float f = 1.0f / ((a.x)*(b.y) - (a.y)*(b.x));
-				u = (pb.y * p.x - pb.x * p.y)*f;
-				v = 1.0f - (u + ((a.x - p.x)*pb.y - (a.y - p.y) * pb.x)*f);
+				float f = 1.0f / (a[0] * b[1] - a[1] * b[0]);
+				u = (pb[1] * p[0] - pb[0] * p[1])*f;
+				v = 1.0f - (u + ((a[0] - p[0])* pb[1] - (a[1] - p[1]) * pb[0])*f);
 				//std::cout << u << " " << v << std::endl;
 
-				float depth = mix(mix(v0.z, v1.z, u), v2.z, v);
+				float depth = mix(mix(v0[2], v1[2], u), v2[2], v);
 
-				if (DEPTH_TEST && depth < getDepthAt(x, y))continue;
+				if (depthTestFunction(getDepthAt(x, y), depth))continue;
 
 				getDepthAt(x, y) = depth;
 

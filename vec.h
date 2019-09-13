@@ -9,58 +9,71 @@
 #include <math.h>
 #include <iostream>
 
-#define Vecd Vec<double>
-#define Vecf Vec<float>
-#define Veci Vec<int>
+#define Vec3f Vec<float, 3>
+#define Vec2f Vec<float, 2>
+#define Vec4f Vec<float, 4>
+
+#define Mat2x2f Vec<Vec<float, 2>, 2>
+#define Mat3x3f Vec<Vec<float, 3>, 3>
+#define Mat4x4f Vec<Vec<float, 4>, 4>
 
 enum Axis
 {
 	X = 0,
 	Y = 1,
-	Z = 2
+	Z = 2,
+	W = 3
 };
 
-template<typename T>
+
+template<typename T, size_t size>
 struct Vec
 {
 	Vec()
 	{
-		x = 0;
-		y = 0;
-		z = 0;
-	}
+		static_assert(size > 0, "wrong vector size!");
 
-	Vec(T x, T y, T z)
-	{
-		this->x = x;
-		this->y = y;
-		this->z = z;
-	}
-
-	Vec(T a)
-	{
-		x = a;
-		y = a;
-		z = a;
-	}
-
-	T x, y, z;
-
-	inline T &operator[](const int &i)
-	{
-		switch (i)
+		for (T *i = cords; i != cords + size; ++i)
 		{
-		case Axis::X:
-			return x;
-		case Axis::Y:
-			return y;
-		case Axis::Z:
-			return z;
-		default:
-			throw "Vec index is out of range";
+			*i = T();
 		}
 	}
+	
+	Vec(T a)
+	{
+		static_assert(size > 0, "wrong vector size!");
+		for (T *i = cords; i != cords + size; ++i)*i = a;
+	}
+	
+	template<typename ...Args>
+	Vec(Args... args)
+	{
+		static_assert(sizeof...(args) == size && sizeof...(args) > 1, "wrong vector size!");
+		T arr[sizeof...(args)] = { args... };
+
+
+		for (T *i = cords, *j = arr; i != cords + size; ++i, ++j)*i = *j;
+	}
+
+	inline T &operator[](const uint32_t &i)
+	{
+		if (i >= size)throw "wrong cord";
+		return *(cords+i);
+	}
+
+	T cords[size];
 };
+
+template<typename T, size_t size>
+inline std::ostream &operator<<(std::ostream &os, Vec<T, size> &v)
+{
+	for (uint32_t i = 0; i != size; ++i)
+	{
+ 		std::cout << *(v.cords+i);
+		if (i != size - 1)std::cout << " ";
+	}
+	return os;
+}
 
 template<typename T>
 inline T mix2d(const T &a, const T &b, const T &c, const double &u, const double &v)
@@ -74,150 +87,224 @@ inline T mix(const T &l, const T &r, const double &a)
 	return l * (1 - a) + r * a;
 }
 
-template<typename T>
-inline std::ostream &operator<<(std::ostream &os, const Vec<T> &v)
+template<typename T, size_t size>
+inline bool operator==(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	os << v.x << "; " << v.y << "; " << v.z;
-	return os;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		if (*i != *j)return false;
+	}
+	return true;
 }
 
-template<typename T>
-inline bool operator==(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline bool operator!=(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return l.x == r.x && l.y == r.y && l.z == r.z;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		if (*i != *j)return true;
+	}
+	return false;
 }
 
-template<typename T>
-inline bool operator!=(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator+(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return l.x != r.x || l.y != r.y || l.z != r.z;
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords, *k = (T*)o.cords; i != (T*)(l.cords + size); ++i, ++j, ++k)
+	{
+		*k = *i + *j;
+	}
+	return o;
 }
 
-template<typename T>
-inline Vec<T> operator+(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator-(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return Vec<T>(l.x + r.x, l.y + r.y, l.z + r.z);
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords, *k = (T*)o.cords; i != (T*)(l.cords + size); ++i, ++j, ++k)
+	{
+		*k = *i - *j;
+	}
+	return o;
 }
 
-template<typename T>
-inline Vec<T> operator-(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator*(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return Vec<T>(l.x - r.x, l.y - r.y, l.z - r.z);
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords, *k = (T*)o.cords; i != (T*)(l.cords + size); ++i, ++j, ++k)
+	{
+		*k = *i * *j;
+	}
+	return o;
 }
 
-template<typename T>
-inline Vec<T> operator*(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size, typename T1>
+inline Vec<T, size> operator*(const Vec<T, size> &v, const T1 &a)
 {
-	return Vec<T>(l.x * r.x, l.y * r.y, l.z * r.z);
+	Vec<T, size> o;
+	for (T *i = (T*)v.cords, *j = (T*)o.cords; i != (T*)(v.cords + size); ++i, ++j)
+	{
+		*j = *i * a;
+	}
+
+	return o;
 }
 
-template<typename T, typename T1>
-inline Vec<T> operator*(const Vec<T> &v, const T1 &a)
+template<typename T, size_t size, typename T1>
+inline Vec<T, size> operator*(const T1 &a, const Vec<T, size> &v)
 {
-	return Vec<T>(T(v.x*a), T(v.y*a), T(v.z*a));
+	Vec<T, size> o;
+	for (T *i = (T*)v.cords, *j = (T*)o.cords; i != (T*)(v.cords + size); ++i, ++j)
+	{
+		*j = a * *i;
+	}
+	return o;
 }
 
-template<typename T, typename T1>
-inline Vec<T> operator*(const T1 &a, const Vec<T> &v)
+template<typename T, size_t size>
+inline Vec<T, size> operator/(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return Vec<T>(T(a*v.x), T(a*v.y), T(a*v.z));
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords, *k = (T*)o.cords; i != (T*)(l.cords + size); ++i, ++j, ++k)
+	{
+		*k = *i / *j;
+	}
+	return o;
 }
 
-template<typename T>
-inline Vec<T> operator/(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator/(const Vec<T, size> &v, const T &a)
 {
-	return Vec<T>(l.x / r.x, l.y / r.y, l.z / r.z);
+	Vec<T, size> o;
+	for (T *i = (T*)v.cords, *j = (T*)o.cords; i != (T*)(v.cords + size); ++i, ++j)
+	{
+		*j = *i * a;
+	}
+	return o;
 }
 
-template<typename T>
-inline Vec<T> operator/(const Vec<T> &v, const T &a)
+template<typename T, size_t size>
+inline Vec<T, size> operator/(const T &a, const Vec<T, size> &v)
 {
-	return Vec<T>(v.x / a, v.y / a, v.z / a);
+	Vec<T, size> o;
+	for (T *i = (T*)v.cords, *j = (T*)o.cords; i != (T*)(v.cords + size); ++i, ++j)
+	{
+		*j = a/ *i;
+	}
+	return o;
 }
 
 
-template<typename T>
-inline Vec<T> operator+=(Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator+=(Vec<T, size> &l, const Vec<T, size> &r)
 {
-	l.x += r.x;
-	l.y += r.y;
-	l.z += r.z;
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		*i += *j;
+	}
 	return l;
 }
 
-template<typename T>
-inline Vec<T> operator-=(Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator-=(Vec<T, size> &l, const Vec<T, size> &r)
 {
-	l.x -= r.x;
-	l.y -= r.y;
-	l.z -= r.z;
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		*i -= *j;
+	}
 	return l;
 }
 
-template<typename T>
-inline Vec<T> operator*=(Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator*=(Vec<T, size> &l, const Vec<T, size> &r)
 {
-	l.x *= r.x;
-	l.y *= r.y;
-	l.z *= r.z;
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		*i *= *j;
+	}
 	return l;
 }
 
-template<typename T>
-inline Vec<T> operator/=(Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> operator/=(Vec<T, size> &l, const Vec<T, size> &r)
 {
-	l.x /= r.x;
-	l.y /= r.y;
-	l.z /= r.z;
+	Vec<T, size> o;
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		*i /= *j;
+	}
 	return l;
 }
 
-template<typename T>
-inline Vec<T> operator*=(Vec<T> &v, const T &a)
+template<typename T, size_t size>
+inline Vec<T, size> operator*=(Vec<T, size> &v, const T &a)
 {
-	v.x *= a;
-	v.y *= a;
-	v.z *= a;
+	for (T *i = (T*)v.cords; i != (T*)(v.cords + size); ++i)
+	{
+		*i *= a;
+	}
 	return v;
 }
 
-template<typename T>
-inline Vec<T> operator/=(Vec<T> &v, const T &a)
+template<typename T, size_t size>
+inline Vec<T, size> operator/=(Vec<T, size> &v, const T &a)
 {
-	v.x /= a;
-	v.y /= a;
-	v.z /= a;
+	for (T *i = (T*)v.cords; i != (T*)(v.cords + size); ++i)
+	{
+		*i /= a;
+	}
 	return v;
 }
 
-template<typename T>
-inline T sqlen(const Vec<T> &v)
+template<typename T, size_t size>
+inline T sqlen(const Vec<T, size> &v)
 {
-	return v.x*v.x + v.y*v.y + v.z*v.z;
+	T l = T();
+	for (T *i = (T*)v.cords; i != (T*)(v.cords + size); ++i)
+	{
+		l+=*i * *i;
+	}
+	return l;
 }
 
-template<typename T>
-inline double len(const Vec<T> &v)
+template<typename T, size_t size>
+inline double len(const Vec<T, size> &v)
 {
-	return std::sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+	return std::sqrt(sqlen(v));
 }
 
-template<typename T>
-inline Vec<T> normalize(const Vec<T> &v)
+template<typename T, size_t size>
+inline Vec<T, size> normalize(const Vec<T, size> &v)
 {
-	T l = std::sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
-	return Vec<T>(v.x / l, v.y / l, v.z / l);
+	T l = len(v);
+
+	Vec<T, size> o;
+	for (T *i = (T*)l.x, *j = (T*)o.cords; i != (T*)(l.x + size); ++i, ++j)
+	{
+		*j = *i / l;
+	}
+	return o;
 }
 
 
-template<typename T>
-inline T dot(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline T dot(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return l.x * r.x + l.y * r.y + l.z + r.z;
+	T d = T();
+	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
+	{
+		l += *i * *j;
+	}
+	return d;
 }
 
-template<typename T>
-inline Vec<T> cross(const Vec<T> &l, const Vec<T> &r)
+template<typename T, size_t size>
+inline Vec<T, size> cross(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return Vec<T>(l.y*r.z - l.z*r.y, l.z*r.x - l.x*r.z, l.x*r.y - l.y*r.x);
+	return Vec<T>(l.y*r.z - l.z*r.y, l.z*r.cords - l.cords*r.z, l.cords*r.y - l.y*r.cords);
 }

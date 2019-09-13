@@ -1,4 +1,5 @@
 #include "vec.h"
+
 #include "defgl.h"
 #include "bmp.h"
 #include "model.h"
@@ -8,27 +9,36 @@ class MainShader: public Shader
 public:
 	char i = 0;
 
-	Vecf color[3];
+	
 
-	Vecf vertex(const unsigned char *data)
+	Vec3f color[3];
+
+	Vec3f vertex(const unsigned char *data)
 	{
-		Vecf v;
+		Vec3f v;
 		char j = 0;
-		v.x = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		v.y = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		v.z = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		v[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		v[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		v[2] = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
-		Vecf uv;
-		uv.x = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		uv.y = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		Vec2f uv;
+		uv[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		uv[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
-		Vecf normal;
-		normal.x = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		normal.y = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		normal.z = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		Vec3f normal;
+		normal[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal[2] = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
 		color[i] = normal;
-
+		/*
+		std::cout << int(i) << std::endl;
+		std::cout << v << std::endl;
+		std::cout << uv << std::endl;
+		std::cout << normal << std::endl;
+		std::cout << std::endl;
+		std::cout << std::endl;
+		*/
 		if (++i == 3) {
 			i = 0;
 		}
@@ -41,9 +51,9 @@ public:
 	{
 		if(i != 0) std::cout << "wtf, i != 0 int fragment!!!" << std::endl;
 
-		Vecf c = mix2d(color[0], color[1], color[2], u, v);
+		Vec3f c = mix2d(color[0], color[1], color[2], u, v);
 
-		return { c.x, c.y, c.z, 1 };
+		return { c[0], c[1], c[2], 1 };
 	}
 };
 
@@ -55,7 +65,7 @@ int main()
 
 	image.bit_map = new unsigned char[image_size*3];
 
-	Model model = loadModel("model.obj");
+	Model model = loadModel("res/model.obj");
 
 	MainShader *shader = new MainShader();
 
@@ -63,17 +73,16 @@ int main()
 	bindShader(shader);
 	bindBitmap(image.bit_map, image.widht, image.height);
 
-	setDepthTest(true);
+	setDepthTestFunction(([](const float &input, const float&current) {return input > current; }));
 
 	clearColor({.5, .5, .5, 1});
 	clearDepthBuffer(-INFINITY);
 
 	drawElements((unsigned char*)(&model.data[0]), (uint32_t*)(&model.indices[0]), model.indices.size(), 8*sizeof(float));
 
-	writeBMP(image, "test.bmp");
+	writeBMP(image, "out/test.bmp");
 
 	std::cout << "success!" << std::endl;
-
 	getchar();
 
 	bmp_terminate(image);

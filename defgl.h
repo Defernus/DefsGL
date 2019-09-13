@@ -20,7 +20,7 @@ uint32_t colorToInt(const Color&);
 class Shader
 {
 public:
-	virtual Vecf vertex(const unsigned char *data) = 0;
+	virtual Vec3f vertex(const unsigned char *data) = 0;
 	virtual Color fragment(const float &u, const float &v) = 0;
 };
 
@@ -30,7 +30,7 @@ int bindBitmap(unsigned char*, const size_t &width, const size_t &height);
 int clearColor(Color color);
 int clearDepthBuffer(const float&);
 
-int setDepthTest(const bool&);
+int setDepthTestFunction(bool(*depthTestFunction)(const float &input, const float&current));
 
 int drawElements(const unsigned char *data, const uint32_t *indices, const size_t &quantity, const size_t &bytes_per_vertex);
 
