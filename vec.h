@@ -306,5 +306,6 @@ inline T dot(const Vec<T, size> &l, const Vec<T, size> &r)
 template<typename T, size_t size>
 inline Vec<T, size> cross(const Vec<T, size> &l, const Vec<T, size> &r)
 {
-	return Vec<T>(l.y*r.z - l.z*r.y, l.z*r.cords - l.cords*r.z, l.cords*r.y - l.y*r.cords);
+	static_assert(size == 3, "vec size must be 3 to calc cross");
+	return Vec<T>(l[1]*r[2] - l[2]*r[1], l[2]*r[0] - l[0]*r[2], l[0]*r[1] - l[1]*r[0]);
 }
