@@ -196,7 +196,6 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 				float f = 1.0f / (a[0] * b[1] - a[1] * b[0]);
 				u = (pb[1] * p[0] - pb[0] * p[1])*f;
 				v = 1.0f - (u + ((a[0] - p[0])* pb[1] - (a[1] - p[1]) * pb[0])*f);
-				//std::cout << u << " " << v << std::endl;
 
 				float depth = mix2d(v0[2], v1[2], v2[2], u, v);
 
