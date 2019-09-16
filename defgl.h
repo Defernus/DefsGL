@@ -20,7 +20,7 @@ uint32_t colorToInt(const Color&);
 class Shader
 {
 public:
-	virtual Vec4f vertex(const unsigned char *data) = 0;
+	virtual Vec3f vertex(const unsigned char *data) = 0;
 	virtual Color fragment(const float &u, const float &v) = 0;
 };
 

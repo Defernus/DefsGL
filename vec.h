@@ -67,27 +67,8 @@ struct Vec
 	T cords[size];
 };
 
-template<typename T>
-Vec<Vec<T, 4>, 4> getRotationMatrix(Vec<T, 3> v, double a)
-{
-	double c = std::cos(a);
-	double s = std::sin(a);
-	return Vec<Vec<T, 4>, 4>
-		(
-			Vec<T, 4>(			 c + (1 - c) * v.cords[0] * v.cords[0],						(1 - c) * v.cords[0] * v.cords[1] - s * v.cords[2],		(1 - c)*v.cords[0] * v.cords[2] + s * v.cords[1],			0),
-
-			Vec<T, 4>(			 (1 - c) * v.cords[1] * v.cords[0] + s * v.cords[2],		c + (1 - c) * v.cords[1] * v.cords[1],					(1 - c)*v.cords[1] * v.cords[2] - s * v.cords[0],			0),
-
-			Vec<T, 4>(			 (1 - c) * v.cords[2] * v.cords[0] - s * v.cords[1],		(1 - c) * v.cords[2] * v[1] + s * v.cords[0],			c + (1 - c)*v.cords[2] * v.cords[2],						0),
-
-
-
-			Vec<T, 4>(			 0,															0,														0,															1 )
-		);
-}
-
 template<typename T, size_t size>
-inline std::ostream &operator<<(std::ostream &os, Vec<T, size> &v)
+inline std::ostream &operator<<(std::ostream &os, const Vec<T, size> &v)
 {
 	for (uint32_t i = 0; i != size; ++i)
 	{
@@ -306,7 +287,7 @@ inline Vec<T, size> normalize(const Vec<T, size> &v)
 	T l = len(v);
 
 	Vec<T, size> o;
-	for (T *i = (T*)l.x, *j = (T*)o.cords; i != (T*)(l.x + size); ++i, ++j)
+	for (T *i = (T*)v.cords, *j = (T*)o.cords; i != (T*)(v.cords + size); ++i, ++j)
 	{
 		*j = *i / l;
 	}
@@ -320,21 +301,20 @@ inline T dot(const Vec<T, size> &l, const Vec<T, size> &r)
 	T d = T();
 	for (T *i = (T*)l.cords, *j = (T*)r.cords; i != (T*)(l.cords + size); ++i, ++j)
 	{
-		l += *i * *j;
+		d += *i * *j;
 	}
 	return d;
 }
 
-template<typename T, size_t size>
-inline Vec<T, size> cross(const Vec<T, size> &l, const Vec<T, size> &r)
+template<typename T>
+inline Vec<T, 3> cross(const Vec<T, 3> &l, const Vec<T, 3> &r)
 {
-	static_assert(size == 3, "vec size must be 3 to calc cross");
-	return Vec<T>(l[1]*r[2] - l[2]*r[1], l[2]*r[0] - l[0]*r[2], l[0]*r[1] - l[1]*r[0]);
+	return Vec<T, 3>(l.cords[1]*r.cords[2] - l.cords[2]*r.cords[1], l.cords[2]*r.cords[0] - l.cords[0]*r.cords[2], l.cords[0]*r.cords[1] - l.cords[1]*r.cords[0]);
 }
 
 
 template<typename T, size_t l, size_t n, size_t m>
-inline Vec<Vec<T, n>, l> operator*(const Vec<Vec<T, m>, l> &l, const Vec<Vec<T, n>, m> &r)
+inline Vec<Vec<T, n>, l> multMat(const Vec<Vec<T, m>, l> &lv, const Vec<Vec<T, n>, m> &rv)
 {
 	Vec<Vec<T, n>, l> o;
 
@@ -344,7 +324,7 @@ inline Vec<Vec<T, n>, l> operator*(const Vec<Vec<T, m>, l> &l, const Vec<Vec<T, 
 		{
 			for (int k = 0; k != m; ++k)
 			{
-				o.cords[i]->cords[j] += l.cords[i].cords[k] * r.cords[k].cords[j];
+				o.cords[i].cords[j] += lv.cords[i].cords[k] * rv.cords[k].cords[j];
 			}
 		}
 	}
@@ -368,7 +348,7 @@ inline Vec<T, n> operator*(const Vec<T, m> &l, const Vec<Vec<T, n>, m> &r)
 }
 
 template<typename T, size_t l, size_t m>
-inline Vec<T, l> operator*(const Vec<Vec<T, m>, l> &l, const Vec<T, m> &r)
+inline Vec<T, l> operator*(const Vec<Vec<T, m>, l> &lv, const Vec<T, m> &rv)
 {
 	Vec<T, l> o;
 
@@ -376,9 +356,60 @@ inline Vec<T, l> operator*(const Vec<Vec<T, m>, l> &l, const Vec<T, m> &r)
 	{
 		for (int j = 0; j != m; ++j)
 		{
-			o.cords[i] += l.cords[i]->cords[j] * r.cords[j];
+			o.cords[i] += lv.cords[i].cords[j] * rv.cords[j];
 		}
 	}
 
 	return o;
+}
+
+template<typename T>
+Vec<Vec<T, 4>, 4> getRotationMatrix(Vec<T, 3> v, double a)
+{
+	double c = std::cos(a);
+	double s = std::sin(a);
+	return Vec<Vec<T, 4>, 4>
+		(
+			Vec<T, 4>(c + (1 - c) * v.cords[0] * v.cords[0], (1 - c) * v.cords[0] * v.cords[1] - s * v.cords[2], (1 - c)*v.cords[0] * v.cords[2] + s * v.cords[1], 0),
+			Vec<T, 4>((1 - c) * v.cords[1] * v.cords[0] + s * v.cords[2], c + (1 - c) * v.cords[1] * v.cords[1], (1 - c)*v.cords[1] * v.cords[2] - s * v.cords[0], 0),
+			Vec<T, 4>((1 - c) * v.cords[2] * v.cords[0] - s * v.cords[1], (1 - c) * v.cords[2] * v[1] + s * v.cords[0], c + (1 - c)*v.cords[2] * v.cords[2], 0),
+			Vec<T, 4>(0, 0, 0, 1)
+		);
+}
+
+template<typename T>
+Vec<Vec<T, 4>, 4> getViewMatrix(Vec<T, 3> right, Vec<T, 3> up, Vec<T, 3> front, Vec<T, 3> pos)
+{
+	return Vec<Vec<T, 4>, 4>
+		(
+			Vec<T, 4>(right.cords[0], right.cords[1], right.cords[2], -dot(right, pos)),
+			Vec<T, 4>(up.cords[0], up.cords[1], up.cords[2], -dot(up, pos)),
+			Vec<T, 4>(-front.cords[0], -front.cords[1], front.cords[2], -dot(front, pos)),
+			Vec<T, 4>(0, 0, 0, 1)
+		);
+}
+
+template<typename T>
+Vec<Vec<T, 4>, 4> getLookAtMatrix(Vec<T, 3> pos, Vec<T, 3> target, Vec<T, 3> up)
+{
+	Vec<T, 3> front = normalize(target - pos);
+	Vec<T, 3> right = normalize(cross(front, up));
+	up = normalize(cross(right, front));
+
+	/*
+	return Vec<Vec<T, 4>, 4>
+		(
+			Vec<T, 4>(right.cords[0], right.cords[1], right.cords[2], -dot(right, pos)),
+			Vec<T, 4>(up.cords[0], up.cords[1], up.cords[2], -dot(up, pos)),
+			Vec<T, 4>(-front.cords[0], -front.cords[1], -front.cords[2], -dot(front, pos)),
+			Vec<T, 4>(0, 0, 0, 1)
+		);
+		*/
+	return Vec<Vec<T, 4>, 4>
+		(
+			Vec<T, 4>(right.cords[0], up.cords[0], -front.cords[0], 0),
+			Vec<T, 4>(right.cords[1], up.cords[1], -front.cords[1], 0),
+			Vec<T, 4>(right.cords[2], up.cords[2], -front.cords[2], 0),
+			Vec<T, 4>(-dot(right, pos), -dot(up, pos), -dot(front, pos), 1)
+		);
 }

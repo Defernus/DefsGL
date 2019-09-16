@@ -108,9 +108,11 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 	size_t triangles_amount = quantity/3;
 	for (uint32_t i = 0; i != triangles_amount; ++i)
 	{
-		Vec4f v0 = shader->vertex(data + bytes_per_vertex * indices[i * 3	]);
-		Vec4f v1 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 1]);
-		Vec4f v2 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 2]);
+		//std::cout << "triangle " << i << "/" <<triangles_amount << std::endl;
+
+		Vec3f v0 = shader->vertex(data + bytes_per_vertex * indices[i * 3	]);
+		Vec3f v1 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 1]);
+		Vec3f v2 = shader->vertex(data + bytes_per_vertex * indices[i * 3 + 2]);
 
 		bool swapped01;
 		bool swapped02;
@@ -145,7 +147,12 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 		int w0 = x1 - x0;
 		int w1 = x2 - x1;
 
-		for (int y = y0; y != y2; ++y)
+		if (y0 >= int(height) || y2 < 0)continue;
+
+		int yd = y0 > 0 ? y0 : 0;
+		int yt = y2 < int(height) ? y2 : int(height);
+
+		for (int y = yd; y != yt; ++y)
 		{
 			int xl = h > 0 ? mix((float)x0, (float)x2, (y - y0) / (double)h) : (x0<x2?x0:x2);
 			int xr = (y-y0) < h0 ? mix(x0, x1, ((float)y - (float)y0) / (double)h0) : (h1 > 0 ? mix((float)x1, (float)x2, (y - y1) / (double)h1) : (x1>x2?x2:x1));
@@ -156,9 +163,14 @@ int drawElements(const unsigned char *data, const uint32_t *indices, const size_
 				std::swap(xl, xr);
 			}
 
+			if (xr < 0 || xl >= int(width))continue;
+
+			xl = xl > 0 ? xl : 0;
+			xr = xr < int(width) ? xr : int(width);
+
 			for (int x = xl; x != xr; ++x)
 			{
-				if (y < 0 || x < 0 || y >= int(width) || x >= int(height))continue;
+				if (x < 0 || x >= int(height))continue;
 
 				float u, v;
 

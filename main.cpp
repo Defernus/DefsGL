@@ -9,43 +9,46 @@ class MainShader: public Shader
 public:
 	char i = 0;
 
-	Mat4x4f mat;
+	Mat4x4f perspective;
 	Vec3f pos;
+
+	Vec3f sun;
 
 	Vec3f color[3];
 
-	Vec4f vertex(const unsigned char *data)
+	Vec3f vertex(const unsigned char *data)
 	{
 		Vec4f v;
 		char j = 0;
-		v[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		v[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		v[2] = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		v[3] = 0;
+		v.cords[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		v.cords[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		v.cords[2] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		v.cords[3] = 1;
 		
 		Vec2f uv;
-		uv[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		uv[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		uv.cords[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		uv.cords[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
 		Vec3f normal;
-		normal[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		normal[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
-		normal[2] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal.cords[0] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal.cords[1] = readFromBytes<float>(data + (sizeof(float) * (j++)));
+		normal.cords[2] = readFromBytes<float>(data + (sizeof(float) * (j++)));
 
-		color[i] = normal;
+		color[i] = dot(normal, sun)*.5 +.5;
 
 		if (++i == 3) {
 			i = 0;
 		}
 
-		v = v * mat;
-
 		v += Vec4f(pos[0], pos[1], pos[2], 0);
 
-		v[0] *= -1/(v[2]*.5);
-		v[1] *= -1/(v[2]*.5);
+		v = v * perspective;
 
-		return v;
+		v.cords[0] /= v.cords[3];
+		v.cords[1] /= v.cords[3];
+		v.cords[2] /= v.cords[3];
+
+		return Vec3f(v.cords[0], v.cords[1], v.cords[2]);
 	}
 
 	Color fragment(const float &u, const float &v)
@@ -70,17 +73,24 @@ int main()
 
 	MainShader *shader = new MainShader();
 
-	shader->mat = getRotationMatrix(Vec3f(0, 1, 0), 1);
+	shader->pos = Vec3f(0, 0, -1);
+	shader->sun = normalize(Vec3f(.5, 1, .25));
 
-	shader->pos = Vec3f(0, 0, -3);
-	
+	Mat4x4f perspective = Mat4x4f(
+		Vec4f(1, 0, 0, 0),
+		Vec4f(0, 1, 0, 0),
+		Vec4f(0, 0, 1, -.25),
+		Vec4f(0, 0, 0, 1)
+	);
+	shader->perspective = perspective;
+
 	initDGL();
 	bindShader(shader);
 	bindBitmap(image.bit_map, image.widht, image.height);
 
-	setDepthTestFunction(([](const float &input, const float&current) {return input > current; }));
+	setDepthTestFunction( [](const float &input, const float&current) {return input > current;} );
 
-	clearColor({.5, .5, .5, 1});
+	clearColor({.3, .5, .7, 1});
 	clearDepthBuffer(-INFINITY);
 
 	drawElements((unsigned char*)(&model.data[0]), (uint32_t*)(&model.indices[0]), model.indices.size(), 8*sizeof(float));
@@ -88,7 +98,7 @@ int main()
 	writeBMP(image, "out/test.bmp");
 
 	std::cout << "success!" << std::endl;
-	getchar();
+	//getchar();
 
 	bmp_terminate(image);
 	terminateDGL();
